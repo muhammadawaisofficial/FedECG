@@ -1,0 +1,9 @@
+              precision    recall  f1-score   support
+
+      Normal     0.8852    0.5347    0.6667       505
+        AFIB     0.3871    0.8108    0.5240        74
+Other Rhythm     0.4203    0.6245    0.5025       245
+
+    accuracy                         0.5862       824
+   macro avg     0.5642    0.6567    0.5644       824
+weighted avg     0.7023    0.5862    0.6050       824

@@ -1,0 +1,9 @@
+                     precision    recall  f1-score   support
+
+             Normal     0.6499    0.7086    0.6780      1692
+Atrial Fibrillation     0.7944    0.9092    0.8479       650
+       Other Rhythm     0.8001    0.7243    0.7603      2608
+
+           accuracy                         0.7432      4950
+          macro avg     0.7481    0.7807    0.7621      4950
+       weighted avg     0.7480    0.7432    0.7437      4950
