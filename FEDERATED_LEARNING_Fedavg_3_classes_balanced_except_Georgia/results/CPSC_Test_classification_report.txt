@@ -1,0 +1,10 @@
+CPSC - Test Classification Report
+              precision    recall  f1-score   support
+
+           0     0.5958    0.9544    0.7336       329
+           1     0.9805    0.9179    0.9482       329
+           2     0.7895    0.3647    0.4990       329
+
+    accuracy                         0.7457       987
+   macro avg     0.7886    0.7457    0.7269       987
+weighted avg     0.7886    0.7457    0.7269       987

@@ -1,0 +1,10 @@
+Chapman - Validation Classification Report
+              precision    recall  f1-score   support
+
+           0     0.9740    0.9881    0.9810       759
+           1     0.9742    0.9960    0.9850       759
+           2     0.9836    0.9473    0.9651       759
+
+    accuracy                         0.9772      2277
+   macro avg     0.9773    0.9772    0.9771      2277
+weighted avg     0.9773    0.9772    0.9771      2277
