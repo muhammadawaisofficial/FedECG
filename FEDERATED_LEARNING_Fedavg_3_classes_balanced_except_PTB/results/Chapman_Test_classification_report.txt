@@ -1,0 +1,10 @@
+Chapman - Test Classification Report
+              precision    recall  f1-score   support
+
+           0     0.9238    0.9750    0.9487       759
+           1     0.9792    0.9947    0.9869       759
+           2     0.9674    0.8986    0.9317       759
+
+    accuracy                         0.9561      2277
+   macro avg     0.9568    0.9561    0.9558      2277
+weighted avg     0.9568    0.9561    0.9558      2277

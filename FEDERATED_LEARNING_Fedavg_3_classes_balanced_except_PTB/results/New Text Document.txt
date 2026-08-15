@@ -1,0 +1,1 @@
+⭐ Best epoch = 35 | Best Val Acc = 0.9305 | Best Val Loss = 0.2474

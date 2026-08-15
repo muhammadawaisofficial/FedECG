@@ -1,0 +1,10 @@
+PhysioNet2017 - Validation Classification Report
+              precision    recall  f1-score   support
+
+           0     0.8547    0.6871    0.7618       505
+           1     0.3220    0.8919    0.4731        74
+           2     0.5305    0.4612    0.4934       245
+
+    accuracy                         0.6383       824
+   macro avg     0.5690    0.6801    0.5761       824
+weighted avg     0.7105    0.6383    0.6561       824

@@ -1,0 +1,10 @@
+Ningbo - Test Classification Report
+              precision    recall  f1-score   support
+
+           0     0.8675    0.9696    0.9157      1020
+           1     0.9843    0.9833    0.9838      1020
+           2     0.9512    0.8402    0.8922      1020
+
+    accuracy                         0.9310      3060
+   macro avg     0.9343    0.9310    0.9306      3060
+weighted avg     0.9343    0.9310    0.9306      3060
