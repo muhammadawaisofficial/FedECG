@@ -1,0 +1,8 @@
+Chapman - Val F1: 0.9749, Test F1: 0.9692
+CPSC - Val F1: 0.7993, Test F1: 0.7620
+Georgia - Val F1: 0.8472, Test F1: 0.8294
+Ningbo - Val F1: 0.9484, Test F1: 0.9432
+PhysioNet2017 - Val F1: 0.4822, Test F1: 0.5196
+PTB - Val F1: 0.7867, Test F1: 0.8060
+
+Combined Test Weighted F1: 0.8517
