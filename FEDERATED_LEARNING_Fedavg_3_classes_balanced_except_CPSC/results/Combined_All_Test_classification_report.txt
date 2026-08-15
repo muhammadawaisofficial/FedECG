@@ -1,0 +1,10 @@
+Combined_All - Test Classification Report
+              precision    recall  f1-score   support
+
+           0     0.8157    0.8532    0.8340      3931
+           1     0.9030    0.9574    0.9294      3500
+           2     0.8293    0.7407    0.7825      3672
+
+    accuracy                         0.8489     11103
+   macro avg     0.8493    0.8505    0.8486     11103
+weighted avg     0.8477    0.8489    0.8471     11103

@@ -1,0 +1,10 @@
+Ningbo - Validation Classification Report
+              precision    recall  f1-score   support
+
+           0     0.9363    0.9647    0.9503      1020
+           1     0.9842    0.9784    0.9813      1020
+           2     0.9447    0.9216    0.9330      1020
+
+    accuracy                         0.9549      3060
+   macro avg     0.9551    0.9549    0.9549      3060
+weighted avg     0.9551    0.9549    0.9549      3060

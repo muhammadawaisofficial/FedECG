@@ -1,0 +1,10 @@
+PTB - Validation Classification Report
+              precision    recall  f1-score   support
+
+           0     0.7701    0.6656    0.7140       966
+           1     0.8441    0.9752    0.9049       966
+           2     0.6874    0.6739    0.6806       966
+
+    accuracy                         0.7716      2898
+   macro avg     0.7672    0.7716    0.7665      2898
+weighted avg     0.7672    0.7716    0.7665      2898

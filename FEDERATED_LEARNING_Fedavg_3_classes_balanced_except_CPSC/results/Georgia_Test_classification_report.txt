@@ -1,0 +1,10 @@
+Georgia - Test Classification Report
+              precision    recall  f1-score   support
+
+           0     0.6438    0.9858    0.7789       352
+           1     0.9705    0.8409    0.9011       352
+           2     0.8349    0.5028    0.6277       352
+
+    accuracy                         0.7765      1056
+   macro avg     0.8164    0.7765    0.7692      1056
+weighted avg     0.8164    0.7765    0.7692      1056
