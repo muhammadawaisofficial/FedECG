@@ -30,7 +30,8 @@ Download the preprocessed `.npz` datasets from HuggingFace (`Alirazi/FedECG`) an
 |--------|--------------------------|-------------|
 | `run_in_distribution_ood_fedbn_lstm.py` | **Tables 1, 2, 5, 6** | Master 50-round FedBN training: In-Distribution benchmark + Leave-One-Hospital-Out (OOD) cross-validation |
 | `run_unbalanced_fedbn_lstm.py` | **Table 6, Figure 6** | FedBN on unbalanced datasets to demonstrate the effect of class balancing |
-| `run_local_ablations.py` | **Tables 3, 4, 9** | Single-client baselines, centralized training, model parameter/size computation |
+| `run_local_ablations.py` | **Tables 3, 4, 9** | Single-client baselines, model parameter/size computation |
+| `run_centralized.py` | **Table 3** | Centralized learning baseline — combines all 6 datasets into one model (upper bound) |
 | `run_architectural_ablation.py` | **Table 11** | Compares proposed LSTM architecture vs baseline GRU (hidden=64, no recurrent dropout) |
 | `run_federated_comparison.py` | **Table 10** | Head-to-head comparison of FedAvg vs FedProx vs FedBN strategies (50 rounds each) |
 | `run_ablation_lr_bs.py` | **Table 8** | Learning Rate × Batch Size grid search ablation (3×3 = 9 configurations) |
