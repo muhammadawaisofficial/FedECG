@@ -1,0 +1,8 @@
+                     Unseen Hospital  Weighted F1  Macro F1  Accuracy  Precision  Recall
+                             Chapman       0.8961    0.8961    0.8968     0.8986  0.8968
+                                CPSC       0.6843    0.6843    0.7092     0.7402  0.7092
+                             Georgia       0.7348    0.7348    0.7462     0.7867  0.7462
+                              Ningbo       0.8757    0.8757    0.8755     0.8780  0.8755
+                       PhysioNet2017       0.4618    0.4094    0.4303     0.6321  0.4303
+                                 PTB       0.0537    0.1427    0.1225     0.3741  0.1225
+OVERALL MEAN (FedBN OOD - 50 Rounds)       0.6177    0.6238    0.6301     0.7183  0.6301
