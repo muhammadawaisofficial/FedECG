@@ -69,6 +69,11 @@ class CNN1DAttentionEnhancedLSTM(nn.Module):
         x, _ = self.attention(x)
         return self.fc2(self.dropout(F.relu(self.fc1(x))))
 
+dummy_model = CNN1DAttentionEnhancedLSTM()
+all_keys = list(dummy_model.state_dict().keys())
+bn_keys = [k for k in all_keys if 'bn' in k or 'num_batches_tracked' in k]
+non_bn_keys = [k for k in all_keys if k not in bn_keys]
+
 # --- 2. Data Loading ---
 print("Loading data...")
 client_tensors = {}
@@ -80,14 +85,9 @@ for name, filename in DATA_FILES.items():
         "X_test": torch.tensor(d['X_test'], dtype=torch.float32), "y_test": torch.tensor(d['y_test'], dtype=torch.long)
     }
 
-# Combine ALL test data for global evaluation (Fair Comparison)
-all_X_test = torch.cat([client_tensors[c]["X_test"] for c in DATA_FILES.keys()])
-all_y_test = torch.cat([client_tensors[c]["y_test"] for c in DATA_FILES.keys()])
-
 BATCH_SIZE = 64
 LOCAL_EPOCHS = 5
 NUM_ROUNDS = 50
-MU = 0.01 # FedProx Proximal Term
 
 def train_fedavg(model, X, y, epochs=LOCAL_EPOCHS):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -102,27 +102,6 @@ def train_fedavg(model, X, y, epochs=LOCAL_EPOCHS):
             loss.backward()
             optimizer.step()
 
-def train_fedprox(model, global_model, X, y, epochs=LOCAL_EPOCHS):
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    criterion = nn.CrossEntropyLoss()
-    model.train()
-    global_weights = {k: v.to(DEVICE) for k, v in global_model.state_dict().items()}
-    for _ in range(epochs):
-        perm = torch.randperm(len(X))
-        for i in range(0, len(X), BATCH_SIZE):
-            idx = perm[i:i+BATCH_SIZE]
-            optimizer.zero_grad()
-            loss = criterion(model(X[idx].to(DEVICE)), y[idx].to(DEVICE))
-            
-            # Proximal Term
-            proximal_term = 0.0
-            for name, param in model.named_parameters():
-                proximal_term += ((param - global_weights[name]) ** 2).sum()
-            loss += (MU / 2) * proximal_term
-            
-            loss.backward()
-            optimizer.step()
-
 def evaluate(model, X, y):
     model.eval()
     preds = []
@@ -130,64 +109,101 @@ def evaluate(model, X, y):
         for i in range(0, len(X), BATCH_SIZE):
             out = model(X[i:i+BATCH_SIZE].to(DEVICE))
             preds.extend(torch.max(out, 1)[1].cpu().numpy())
-    return f1_score(y.numpy(), preds, average='weighted', zero_division=0)
+    return preds
 
-results = []
+strategy = "FedAdam-BN"
+print(f"\n{'='*50}\nSTARTING {strategy} (50 Rounds)\n{'='*50}")
 
-for strategy in ["FedAdam"]:
-    print(f"\n{'='*50}\nSTARTING {strategy} (50 Rounds)\n{'='*50}")
-    global_model = CNN1DAttentionEnhancedLSTM().to(DEVICE)
-    client_models = {c: CNN1DAttentionEnhancedLSTM().to(DEVICE) for c in DATA_FILES.keys()}
-    
-    if strategy == "FedAdam":
-        server_optimizer = torch.optim.Adam(global_model.parameters(), lr=0.01)
-    
-    # Initialize all clients with global weights
+global_model = CNN1DAttentionEnhancedLSTM().to(DEVICE)
+client_models = {c: CNN1DAttentionEnhancedLSTM().to(DEVICE) for c in DATA_FILES.keys()}
+
+# For FedAdam, server optimizer only updates non-BN parameters
+server_optimizer = torch.optim.Adam([p for n, p in global_model.named_parameters() if n in non_bn_keys], lr=0.01)
+
+# Initialize all clients with global non-BN weights
+for c in client_models:
+    st = client_models[c].state_dict()
+    for k in non_bn_keys:
+        st[k] = global_model.state_dict()[k]
+    client_models[c].load_state_dict(st)
+
+checkpoint_path = os.path.join(RESULTS_DIR, "fedadam_bn_checkpoint.pth")
+start_round = 1
+
+if os.path.exists(checkpoint_path):
+    print("Found checkpoint! Resuming training...")
+    ckpt = torch.load(checkpoint_path, map_location=DEVICE)
+    start_round = ckpt['round'] + 1
+    global_model.load_state_dict(ckpt['global_model'])
     for c in client_models:
-        client_models[c].load_state_dict(global_model.state_dict())
+        client_models[c].load_state_dict(ckpt['client_models'][c])
+    server_optimizer.load_state_dict(ckpt['server_optimizer'])
+    print(f"Resuming from round {start_round}")
 
-    for round_idx in range(1, NUM_ROUNDS + 1):
-        print(f"[{strategy}] Round {round_idx}/{NUM_ROUNDS}...")
+for round_idx in range(start_round, NUM_ROUNDS + 1):
+    print(f"[{strategy}] Round {round_idx}/{NUM_ROUNDS}...")
+    
+    # 1. Local Training
+    for client_name, data in client_tensors.items():
+        model = client_models[client_name]
         
-        # 1. Local Training
-        for client_name, data in client_tensors.items():
-            model = client_models[client_name]
-            # Always sync with global before local training
-            model.load_state_dict(global_model.state_dict())
-            
-            if strategy in ["FedAvg", "FedAdam"]:
-                train_fedavg(model, data["X_train"], data["y_train"])
-            elif strategy == "FedProx":
-                train_fedprox(model, global_model, data["X_train"], data["y_train"])
-
-        # 2. Aggregation
-        new_global = {}
-        for key in global_model.state_dict().keys():
-            orig_dtype = global_model.state_dict()[key].dtype
-            stacked = torch.stack([client_models[c].state_dict()[key].float() for c in client_models.keys()])
-            new_global[key] = stacked.mean(dim=0).to(orig_dtype)
+        # Sync with global non-BN before local training
+        st = model.state_dict()
+        for k in non_bn_keys:
+            st[k] = global_model.state_dict()[k]
+        model.load_state_dict(st)
         
-        if strategy == "FedAdam":
-            server_optimizer.zero_grad()
-            for name, param in global_model.named_parameters():
-                if param.requires_grad:
-                    param.grad = param.data - new_global[name]
-            server_optimizer.step()
-            
-            # Manually update non-trainable buffers (like BatchNorm running stats)
-            with torch.no_grad():
-                for name, buffer in global_model.named_buffers():
-                    buffer.copy_(new_global[name])
-        else:
-            global_model.load_state_dict(new_global)
+        train_fedavg(model, data["X_train"], data["y_train"])
 
-    # 3. Final Evaluation
-    print(f"Evaluating Final {strategy} Global Model...")
-    wf1 = evaluate(global_model, all_X_test, all_y_test)
-    print(f"{strategy} Final Weighted F1: {wf1:.4f}")
-    results.append({"Strategy": strategy, "Weighted_F1": wf1})
+    # 2. Aggregation (FedAdam-BN)
+    avg_non_bn = {}
+    for key in non_bn_keys:
+        orig_dtype = global_model.state_dict()[key].dtype
+        stacked = torch.stack([client_models[c].state_dict()[key].float() for c in client_models.keys()])
+        avg_non_bn[key] = stacked.mean(dim=0).to(orig_dtype)
+    
+    server_optimizer.zero_grad()
+    for name, param in global_model.named_parameters():
+        if name in non_bn_keys and param.requires_grad:
+            # Pseudo-gradient: global - aggregated client
+            param.grad = param.data - avg_non_bn[name]
+    server_optimizer.step()
+    
+    # Manually update non-trainable non-bn buffers (if any exist)
+    with torch.no_grad():
+        for name, buffer in global_model.named_buffers():
+            if name in non_bn_keys:
+                buffer.copy_(avg_non_bn[name])
 
-df = pd.DataFrame(results)
-out_csv = os.path.join(RESULTS_DIR, "fedadam_result.csv")
+    # 3. Checkpointing
+    torch.save({
+        'round': round_idx,
+        'global_model': global_model.state_dict(),
+        'client_models': {c: client_models[c].state_dict() for c in client_models},
+        'server_optimizer': server_optimizer.state_dict()
+    }, checkpoint_path)
+
+# 4. Final Evaluation (FedBN specific: clients use their own models on their own test sets)
+print(f"Evaluating Final {strategy} Global Model...")
+all_preds = []
+all_trues = []
+
+for client_name in DATA_FILES.keys():
+    test_model = client_models[client_name]
+    st = test_model.state_dict()
+    # Sync with final global non-BN weights
+    for k in non_bn_keys:
+        st[k] = global_model.state_dict()[k]
+    test_model.load_state_dict(st)
+    
+    preds = evaluate(test_model, client_tensors[client_name]["X_test"], client_tensors[client_name]["y_test"])
+    all_preds.extend(preds)
+    all_trues.extend(client_tensors[client_name]["y_test"].numpy())
+
+wf1 = f1_score(all_trues, all_preds, average='weighted', zero_division=0)
+print(f"{strategy} Final Weighted F1: {wf1:.4f}")
+
+df = pd.DataFrame([{"Strategy": strategy, "Weighted_F1": wf1}])
+out_csv = os.path.join(RESULTS_DIR, "fedadam_bn_result.csv")
 df.to_csv(out_csv, index=False)
 print(f"\nDone! Results saved to {out_csv}")
