@@ -173,6 +173,11 @@ for strategy in ["FedAdam"]:
                 if param.requires_grad:
                     param.grad = param.data - new_global[name]
             server_optimizer.step()
+            
+            # Manually update non-trainable buffers (like BatchNorm running stats)
+            with torch.no_grad():
+                for name, buffer in global_model.named_buffers():
+                    buffer.copy_(new_global[name])
         else:
             global_model.load_state_dict(new_global)
 
