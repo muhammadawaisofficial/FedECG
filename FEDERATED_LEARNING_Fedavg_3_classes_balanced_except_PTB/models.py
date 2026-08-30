@@ -130,4 +130,74 @@ class CNN1DAttentionEnhanced(nn.Module):
         return x
 
 
+# ------------------------------
+# 🔹 LSTM variant (same backbone, GRU -> LSTM)
+# ------------------------------
+class CNN1DAttentionEnhancedLSTM(nn.Module):
+    """
+    Identical to CNN1DAttentionEnhanced (same CNN blocks, same Attention head,
+    same FC head) except the temporal-modeling layer is an nn.LSTM instead of
+    an nn.GRU. Used to compare FedAvg with an LSTM backbone vs the original GRU.
+
+    nn.LSTM returns (output, (h_n, c_n)) instead of GRU's (output, h_n), but
+    since we only ever consume the sequence `output` and discard the state,
+    `x, _ = self.lstm(x)` works exactly like the GRU call site.
+    """
+    def __init__(self, input_length, num_classes):
+        super(CNN1DAttentionEnhancedLSTM, self).__init__()
+
+        self.block1 = nn.Sequential(
+            ConvBlock(12, 16),
+            ResidualUnit(16),
+            nn.MaxPool1d(kernel_size=2)
+        )
+        self.block2 = nn.Sequential(
+            ConvBlock(16, 32),
+            ResidualUnit(32),
+            nn.MaxPool1d(kernel_size=2)
+        )
+        self.block3 = nn.Sequential(
+            ConvBlock(32, 64),
+            ResidualUnit(64),
+            nn.MaxPool1d(kernel_size=2)
+        )
+        self.block4 = nn.Sequential(
+            ConvBlock(64, 128, kernel_size=7),
+            ResidualUnit(128),
+            nn.MaxPool1d(kernel_size=2)
+        )
+
+        # 🔁 LSTM replaces GRU — same shape contract (input_size=128, hidden_size=32, 2 layers)
+        self.lstm = nn.LSTM(
+            input_size=128,
+            hidden_size=32,
+            num_layers=2,
+            batch_first=True,
+            bidirectional=False,
+            dropout=0.2
+        )
+
+        self.attention = Attention(input_dim=32)
+        self.fc1 = nn.Linear(32, 32)
+        self.dropout = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(32, num_classes)
+
+    def forward(self, x):
+        x = self.block1(x)
+        x = self.block2(x)
+        x = self.block3(x)
+        x = self.block4(x)
+
+        x = x.permute(0, 2, 1)  # (batch_size, seq_len, 128)
+
+        x, _ = self.lstm(x)        # (batch_size, seq_len, 32) — (h_n, c_n) discarded
+        x, _ = self.attention(x)   # (batch_size, 32)
+
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+
+        return x
+
+
 
