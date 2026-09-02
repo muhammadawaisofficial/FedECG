@@ -15,12 +15,14 @@ Install dependencies:
 pip install torch numpy pandas scikit-learn
 ```
 
-## Data Preparation
+## Data Preparation & Train/Val/Test Split
 Download the preprocessed `.npz` datasets from HuggingFace (`Alirazi/FedECG`) and place them in:
 ```
 ./data/balanced/       # Balanced datasets (Chapman, CPSC, Georgia, Ningbo, PhysioNet2017, PTB)
 ./data/Unbalanced/     # Unbalanced datasets (same 6 clients, original class distributions)
 ```
+
+> **Evaluation Protocol:** All reported performance numbers are evaluated strictly on the **held-out 10% test set** of each client (split: 80% train, 10% val, 10% test). The test sets are never seen during federated training.
 
 ---
 
